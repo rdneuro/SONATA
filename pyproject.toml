@@ -1,0 +1,130 @@
+# pyproject.toml — SONATA
+# Structure-tO-fuNction via spectrAl Tract Attributes.
+#
+# PEP 621 metadata + hatchling backend. Flat layout: the importable package is
+# ./sonata, with run_sonata.py as a top-level script, matching the interactive
+# (Spyder-cell) workflow the project is developed in.
+#
+# INSTALL (no PyPI project — install from the repo):
+#   git clone https://github.com/rdneuro/sonata
+#   cd sonata
+#   pip install -e .'[all]'
+# or, in one line, straight from GitHub:
+#   pip install git+https://github.com/rdneuro/sonata.git
+#
+# Two runtime deps are NOT on PyPI and must be installed first if you use the
+# full scientific pipeline (see README): a local editable `spectralbrain`, and a
+# CUDA build of `torch` matching your driver.
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+# =============================================================================
+# Project metadata
+# =============================================================================
+[project]
+name = "sonata-brain"
+version = "0.2.0"
+description = "Geometry-aware edge-conditioned GNN predicting functional from structural connectivity via spectral tract-surface descriptors, with a multi-backend compute layer and a Bayesian attribution extension."
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = "MIT"
+keywords = [
+    "neuroimaging", "connectomics", "graph-neural-network", "structure-function",
+    "laplace-beltrami", "spectral-shape", "tractography", "functional-connectivity",
+    "bayesian", "horseshoe", "gpu",
+]
+authors = [{ name = "Rodrigo Debona", email = "r.debona@posgrad.ufsc.br" }]
+maintainers = [{ name = "Rodrigo Debona", email = "r.debona@posgrad.ufsc.br" }]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Typing :: Typed",
+]
+
+# ── Core runtime: the scientific-Python base that ALL of SONATA rests on. ──────
+# Deliberately lean so `import sonata` and the infra (backends/parallel/memory/
+# viz-2D) work on a minimal install; heavier stacks live in the extras below.
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.13",
+    "pandas>=2.0",
+    "scikit-learn>=1.4",
+    "joblib>=1.3",             # unified CPU parallelism (sonata.parallel)
+    "psutil>=5.9",             # RAM/VRAM budgeting (sonata.memory)
+    "matplotlib>=3.8",         # 2D visualization
+    "seaborn>=0.13",
+    "networkx>=3.0",           # connectome node-link plots
+    "rich>=13.0",              # progress/UX
+]
+
+# ── Optional extras ───────────────────────────────────────────────────────────
+[project.optional-dependencies]
+# The scientific pipeline (surfaces -> graph -> GNN). torch is CPU-wheel here;
+# install a CUDA build first if you want the GPU (see README).
+pipeline = [
+    "nibabel>=5.2",
+    "scikit-image>=0.22",
+    "lapy>=1.0",
+    "torch>=2.1",
+    "torch_geometric>=2.5",
+]
+# GPU array backends (install the one matching your platform/driver).
+gpu = ["cupy-cuda12x>=13.0"]           # jax[cuda]/torch-cuda installed per docs
+jax = ["jax>=0.4"]
+# Bayesian attribution samplers (backends.bayes / attribution.py).
+bayes = ["pymc>=5.10", "arviz>=0.17", "nutpie>=0.13", "numpyro>=0.13", "blackjax>=1.0"]
+# Structural gradients + harmonization.
+gradients = ["brainspace>=0.1.10"]
+harmonize = ["neuroCombat"]
+# 3D rendering (cortex/tract surfaces).
+viz3d = ["vedo>=2024.5", "pyvista>=0.44", "nilearn>=0.10"]
+# Dev tooling.
+dev = ["pytest>=8.0", "ruff>=0.5", "tqdm>=4.66"]
+# Everything (the install the README documents).
+all = [
+    "nibabel>=5.2", "scikit-image>=0.22", "lapy>=1.0",
+    "torch>=2.1", "torch_geometric>=2.5",
+    "pymc>=5.10", "arviz>=0.17", "nutpie>=0.13", "numpyro>=0.13", "blackjax>=1.0",
+    "brainspace>=0.1.10", "neuroCombat",
+    "vedo>=2024.5", "pyvista>=0.44", "nilearn>=0.10",
+    "pytest>=8.0", "ruff>=0.5",
+]
+
+[project.urls]
+Homepage = "https://github.com/rdneuro/sonata"
+Repository = "https://github.com/rdneuro/sonata"
+
+[project.scripts]
+sonata-features = "sonata.cli:features_main"
+sonata-run = "sonata.cli:run_main"
+
+# =============================================================================
+# Build: flat layout — ship the `sonata` package (scripts stay top-level)
+# =============================================================================
+[tool.hatch.build.targets.wheel]
+packages = ["sonata"]
+
+[tool.hatch.build.targets.sdist]
+include = ["sonata", "run_sonata.py", "README.md", "examples", "tests"]
+
+# =============================================================================
+# Tooling
+# =============================================================================
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "NPY"]
+ignore = ["E741"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
